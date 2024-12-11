@@ -10,6 +10,9 @@ ENV PYTHONUNBUFFERED=1
 # Speed up some cmake builds
 ENV CMAKE_BUILD_PARALLEL_LEVEL=8
 
+# Enable Serve API locally
+ENV SERVE_API_LOCALLY=true
+
 # Install Python, git and other necessary tools
 RUN apt-get update && apt-get install -y \
     python3.10 \
@@ -17,9 +20,12 @@ RUN apt-get update && apt-get install -y \
     git \
     wget \
     libgl1 \
+    libglib2.0-0 \  
+    libsm6 \        
+    libxext6 \      
+    libxrender-dev \ 
     && ln -sf /usr/bin/python3.10 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip
-
 # Clean up to reduce image size
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
@@ -42,8 +48,11 @@ ADD src/extra_model_paths.yaml ./
 WORKDIR /
 
 # Add scripts
-ADD src/start.sh src/restore_snapshot.sh src/rp_handler.py test_input.json ./
+ADD src/start.sh src/restore_snapshot.sh src/rp_handler.py flux_de_distilled_input.json ./
 RUN chmod +x /start.sh /restore_snapshot.sh
+
+# Convert Windows line endings to Unix
+RUN sed -i 's/\r$//' /start.sh /restore_snapshot.sh
 
 # Optionally copy the snapshot file
 ADD *snapshot*.json /
@@ -84,6 +93,25 @@ RUN if [ "$MODEL_TYPE" = "sdxl" ]; then \
       wget -O models/clip/t5xxl_fp8_e4m3fn.safetensors https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn.safetensors && \
       wget --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/vae/ae.safetensors https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/ae.safetensors; \
     fi
+
+# Download the custom checkpoints
+RUN wget --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" \
+    -O models/unet/real_korean_de_distilled-step00002500.safetensors \
+    https://huggingface.co/trueorfalse441/real_korean_de_destilled_2nd/resolve/main/real_korean_de_distilled-step00002500.safetensors
+
+# Download additional clip models
+RUN wget --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" \
+    -O models/clip/clip_l.safetensors \
+    https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors
+
+RUN wget --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" \
+    -O models/clip/t5xxl_fp16.safetensors \
+    https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors
+
+# Download the VAE model
+RUN wget --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" \
+    -O models/vae/ae.safetensors \
+    https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/ae.safetensors
 
 # Stage 3: Final image
 FROM base as final
