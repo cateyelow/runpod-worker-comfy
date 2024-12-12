@@ -69,11 +69,16 @@ FROM base as downloader
 ARG HUGGINGFACE_ACCESS_TOKEN
 ARG MODEL_TYPE
 
-# Change working directory to ComfyUI
+# Add error checking and verbose output for wget
+RUN apt-get update && apt-get install -y curl
+
+# Create necessary directories with proper permissions
 WORKDIR /comfyui
+RUN mkdir -p models/checkpoints models/vae models/unet models/clip models/unet&& \
+    chmod -R 755 models
 
 # Create necessary directories
-RUN mkdir -p models/checkpoints models/vae
+RUN mkdir -p models/checkpoints models/vae models/unet models/clip
 
 # Download checkpoints/vae/LoRA to include in image based on model type
 RUN if [ "$MODEL_TYPE" = "sdxl" ]; then \
@@ -88,36 +93,35 @@ RUN if [ "$MODEL_TYPE" = "sdxl" ]; then \
       wget -O models/clip/t5xxl_fp8_e4m3fn.safetensors https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn.safetensors && \
       wget -O models/vae/ae.safetensors https://huggingface.co/black-forest-labs/FLUX.1-schnell/resolve/main/ae.safetensors; \
     elif [ "$MODEL_TYPE" = "flux1-dev" ]; then \
-      wget --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/unet/flux1-dev.safetensors https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/flux1-dev.safetensors && \
-      wget -O models/clip/clip_l.safetensors https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors && \
-      wget -O models/clip/t5xxl_fp8_e4m3fn.safetensors https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp8_e4m3fn.safetensors && \
-      wget --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" -O models/vae/ae.safetensors https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/ae.safetensors; \
+      echo "Downloading FLUX.1-dev de-distilled models..." && \
+      wget --verbose --show-progress --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" \
+        -O models/unet/real_korean_de_distilled-step00002500.safetensors \
+        https://huggingface.co/trueorfalse441/real_korean_de_destilled_2nd/resolve/main/real_korean_de_distilled-step00002500.safetensors && \
+      wget --verbose --show-progress --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" \
+        -O models/clip/clip_l.safetensors \
+        https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors && \
+      wget --verbose --show-progress --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" \
+        -O models/clip/t5xxl_fp16.safetensors \
+        https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors && \
+      wget --verbose --show-progress --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" \
+        -O models/vae/ae.safetensors \
+        https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/ae.safetensors; \
     fi
-
-# Download the custom checkpoints
-RUN wget --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" \
-    -O models/unet/real_korean_de_distilled-step00002500.safetensors \
-    https://huggingface.co/trueorfalse441/real_korean_de_destilled_2nd/resolve/main/real_korean_de_distilled-step00002500.safetensors
-
-# Download additional clip models
-RUN wget --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" \
-    -O models/clip/clip_l.safetensors \
-    https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/clip_l.safetensors
-
-RUN wget --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" \
-    -O models/clip/t5xxl_fp16.safetensors \
-    https://huggingface.co/comfyanonymous/flux_text_encoders/resolve/main/t5xxl_fp16.safetensors
-
-# Download the VAE model
-RUN wget --header="Authorization: Bearer ${HUGGINGFACE_ACCESS_TOKEN}" \
-    -O models/vae/ae.safetensors \
-    https://huggingface.co/black-forest-labs/FLUX.1-dev/resolve/main/ae.safetensors
 
 # Stage 3: Final image
 FROM base as final
 
-# Copy models from stage 2 to the final image
-COPY --from=downloader /comfyui/models /comfyui/models
+# Copy models with explicit paths and verification
+COPY --from=downloader /comfyui/models/ /comfyui/models/
+RUN ls -la /comfyui/models/*
+
+# Add a verification step
+RUN if [ ! -f /comfyui/models/unet/real_korean_de_distilled-step00002500.safetensors ] || \
+    [ ! -f /comfyui/models/clip/clip_l.safetensors ] || \
+    [ ! -f /comfyui/models/clip/t5xxl_fp16.safetensors ] || \
+    [ ! -f /comfyui/models/vae/ae.safetensors ]; then \
+      echo "Error: Required models are missing!" && exit 1; \
+    fi
 
 # Start container
 CMD ["/start.sh"]
