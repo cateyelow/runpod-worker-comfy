@@ -10,8 +10,14 @@ ENV PYTHONUNBUFFERED=1
 # Speed up some cmake builds
 ENV CMAKE_BUILD_PARALLEL_LEVEL=8
 
-# Enable Serve API locally
-ENV SERVE_API_LOCALLY=true
+# Set bucket credentials
+ARG BUCKET_ENDPOINT_URL
+ARG BUCKET_ACCESS_KEY_ID
+ARG BUCKET_SECRET_ACCESS_KEY
+
+ENV BUCKET_ENDPOINT_URL=${BUCKET_ENDPOINT_URL}
+ENV BUCKET_ACCESS_KEY_ID=${BUCKET_ACCESS_KEY_ID}
+ENV BUCKET_SECRET_ACCESS_KEY=${BUCKET_SECRET_ACCESS_KEY}
 
 # Install Python, git and other necessary tools
 RUN apt-get update && apt-get install -y \
@@ -20,20 +26,47 @@ RUN apt-get update && apt-get install -y \
     git \
     wget \
     libgl1 \
-    libglib2.0-0 \  
-    libsm6 \        
-    libxext6 \      
-    libxrender-dev \ 
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
     && ln -sf /usr/bin/python3.10 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip
+
 # Clean up to reduce image size
 RUN apt-get autoremove -y && apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Install comfy-cli
 RUN pip install comfy-cli
 
-# Install ComfyUI
-RUN /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 11.8 --nvidia --version 0.2.7
+# Install PyTorch separately
+RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+# Install xformers
+RUN pip install --no-cache-dir xformers
+
+# Install ComfyUI with retry mechanism
+RUN for i in 1 2 3; do \
+    echo "Attempt $i: Installing ComfyUI..." && \
+    /usr/bin/yes | comfy --workspace /comfyui install --cuda-version 11.8 --nvidia --version 0.2.7 && \
+    cd /comfyui/custom_nodes && \
+    for j in 1 2 3; do \
+        echo "Attempt $j: Installing ComfyUI-Manager..." && \
+        git clone https://github.com/ltdrdata/ComfyUI-Manager && break || \
+        echo "Git clone failed, cleaning up and retrying in 15 seconds..." && \
+        rm -rf ComfyUI-Manager && \
+        sleep 15; \
+    done && \
+    break || \
+    echo "ComfyUI installation failed, retrying in 15 seconds..." && \
+    rm -rf /comfyui/* && \
+    sleep 15; \
+done
+
+# Verify installation
+RUN if [ ! -d "/comfyui" ] || [ ! -d "/comfyui/custom_nodes/ComfyUI-Manager" ]; then \
+    echo "Error: ComfyUI or ComfyUI-Manager installation failed!" && exit 1; \
+fi
 
 # Change working directory to ComfyUI
 WORKDIR /comfyui

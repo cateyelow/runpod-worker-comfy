@@ -1,200 +1,105 @@
 {
-  "input": {
-    "workflow": {
-      "6": {
-        "inputs": {
-          "text": "korean girl",
-          "clip": [
-            "11",
-            0
-        ]
-    },
-    "class_type": "CLIPTextEncode",
-    "_meta": {
-      "title": "CLIP Text Encode (Positive Prompt)"
+    "input": {
+      "workflow": {
+        "3": {
+          "inputs": {
+            "seed": 65881966738914,
+            "steps": 30,
+            "cfg": 3.5,
+            "sampler_name": "euler",
+            "scheduler": "simple",
+            "denoise": 1,
+            "model": ["12", 0],
+            "positive": ["6", 0],
+            "negative": ["37", 0],
+            "latent_image": ["38", 0]
+          },
+          "class_type": "KSampler"
+        },
+        "4": {
+          "inputs": {
+            "ckpt_name": "real_korean_de_distilled-step00002500.safetensors"
+          },
+          "class_type": "CheckpointLoaderSimple"
+        },
+        "5": {
+          "inputs": {
+            "width": 1024,
+            "height": 1024,
+            "batch_size": 1
+          },
+          "class_type": "EmptyLatentImage"
+        },
+        "6": {
+          "inputs": {
+            "text": "korean girl",
+            "clip": ["11", 0]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "37": {
+          "inputs": {
+            "text": "",
+            "clip": ["11", 0]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "7": {
+          "inputs": {
+            "text": "text, watermark",
+            "clip": ["11", 0]
+          },
+          "class_type": "CLIPTextEncode"
+        },
+        "8": {
+          "inputs": {
+            "samples": ["3", 0],
+            "vae": ["10", 0]
+          },
+          "class_type": "VAEDecode"
+        },
+        "9": {
+          "inputs": {
+            "filename_prefix": "ComfyUI",
+            "images": ["8", 0]
+          },
+          "class_type": "SaveImage"
+        },
+        "10": {
+          "inputs": {
+            "vae_name": "ae.safetensors"
+          },
+          "class_type": "VAELoader"
+        },
+        "11": {
+          "inputs": {
+            "clip_name1": "t5xxl_fp16.safetensors",
+            "clip_name2": "clip_l.safetensors",
+            "type": "flux"
+          },
+          "class_type": "DualCLIPLoader"
+        },
+        "12": {
+          "inputs": {
+            "unet_name": "real_korean_de_distilled-step00002500.safetensors",
+            "weight_dtype": "default"
+          },
+          "class_type": "UNETLoader"
+        },
+        "38": {
+          "inputs": {
+            "width": 1024,
+            "height": 1024,
+            "batch_size": 1
+          },
+          "class_type": "EmptyLatentImage"
+        },
+        "39": {
+          "inputs": {
+            "noise_seed": 65881966738914
+          },
+          "class_type": "RandomNoise"
+        }
+      }
     }
-  },
-  "8": {
-    "inputs": {
-      "samples": [
-        "13",
-        0
-      ],
-      "vae": [
-        "10",
-        0
-      ]
-    },
-    "class_type": "VAEDecode",
-    "_meta": {
-      "title": "VAE Decode"
-    }
-  },
-  "10": {
-    "inputs": {
-      "vae_name": "diffusion_pytorch_model.safetensors"
-    },
-    "class_type": "VAELoader",
-    "_meta": {
-      "title": "Load VAE"
-    }
-  },
-  "11": {
-    "inputs": {
-      "clip_name1": "t5xxl_fp16.safetensors",
-      "clip_name2": "clip_l.safetensors",
-      "type": "flux"
-    },
-    "class_type": "DualCLIPLoader",
-    "_meta": {
-      "title": "DualCLIPLoader"
-    }
-  },
-  "12": {
-    "inputs": {
-      "unet_name": "real_korean_de_distilled-step00002500.safetensors",
-      "weight_dtype": "default"
-    },
-    "class_type": "UNETLoader",
-    "_meta": {
-      "title": "Load Diffusion Model"
-    }
-  },
-  "13": {
-    "inputs": {
-      "noise": [
-        "39",
-        0
-      ],
-      "guider": [
-        "36",
-        0
-      ],
-      "sampler": [
-        "16",
-        0
-      ],
-      "sigmas": [
-        "17",
-        0
-      ],
-      "latent_image": [
-        "38",
-        0
-      ]
-    },
-    "class_type": "SamplerCustomAdvanced",
-    "_meta": {
-      "title": "SamplerCustomAdvanced"
-    }
-  },
-  "16": {
-    "inputs": {
-      "sampler_name": "euler"
-    },
-    "class_type": "KSamplerSelect",
-    "_meta": {
-      "title": "KSamplerSelect"
-    }
-  },
-  "17": {
-    "inputs": {
-      "scheduler": "simple",
-      "steps": 30,
-      "denoise": 1,
-      "model": [
-        "12",
-        0
-      ]
-    },
-    "class_type": "BasicScheduler",
-    "_meta": {
-      "title": "BasicScheduler"
-    }
-  },
-  "33": {
-    "inputs": {
-      "filename_prefix": "Flux/image",
-      "filename_keys": "PNG",
-      "foldername_prefix": "myPix",
-      "foldername_keys": "sampler_name, scheduler",
-      "delimiter": "underscore",
-      "save_job_data": "basic, prompt",
-      "job_data_per_image": "disabled",
-      "job_custom_text": "",
-      "save_metadata": "enabled",
-      "counter_digits": 3,
-      "counter_position": "last",
-      "one_counter_per_folder": "disabled",
-      "image_preview": "enabled",
-      "positive_text_opt": "",
-      "negative_text_opt": "",
-      "images": [
-        "8",
-        0
-      ]
-    },
-    "class_type": "SaveImageExtended",
-    "_meta": {
-      "title": "Save Image Extended"
-    }
-  },
-  "36": {
-    "inputs": {
-      "threshold": 1,
-      "cfg": 3.5,
-      "uncond_zero_scale": 0,
-      "cfg_start_pct": 0,
-      "model": [
-        "12",
-        0
-      ],
-      "positive": [
-        "6",
-        0
-      ],
-      "negative": [
-        "37",
-        0
-      ]
-    },
-    "class_type": "AdaptiveGuidance",
-    "_meta": {
-      "title": "AdaptiveGuider"
-    }
-  },
-  "37": {
-    "inputs": {
-      "text": "",
-      "clip": [
-        "11",
-        0
-      ]
-    },
-    "class_type": "CLIPTextEncode",
-    "_meta": {
-      "title": "CLIP Text Encode (Negative Prompt)"
-    }
-  },
-  "38": {
-    "inputs": {
-      "width": 1024,
-      "height": 1024,
-      "batch_size": 1
-    },
-    "class_type": "EmptyLatentImage",
-    "_meta": {
-      "title": "Empty Latent Image"
-    }
-  },
-  "39": {
-    "inputs": {
-      "noise_seed": 65881966738914
-    },
-    "class_type": "RandomNoise",
-    "_meta": {
-      "title": "RandomNoise"
-    }
-  }
-  }}
 }

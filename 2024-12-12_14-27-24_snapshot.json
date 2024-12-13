@@ -1,6 +1,10 @@
 {
     "comfyui": "f2aaa0a4754abf4155bf3672279073149589b5ee",
     "git_custom_nodes": {
+        "https://github.com/asagi4/ComfyUI-Adaptive-Guidance": {
+            "hash": "8fc3b008ad30a199199f573d2f547a22f8247824",
+            "disabled": false
+        },
         "https://github.com/crystian/ComfyUI-Crystools": {
             "hash": "03a61d690379f22c6bffc42ea4845f797deb316c",
             "disabled": false
